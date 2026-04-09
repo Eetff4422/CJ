@@ -1,0 +1,31 @@
+import { AuthRepository } from '@application/ports/AuthRepository';
+import { User } from '@domain/entities/User';
+import { storage } from '@infrastructure/persistence/LocalStorageAdapter';
+
+const KEY = 'users';
+
+export class InMemoryAuthRepository implements AuthRepository {
+  private users: User[];
+
+  constructor(seed: User[]) {
+    const stored = storage.get<User[]>(KEY);
+    if (stored && stored.length > 0) {
+      this.users = stored;
+    } else {
+      this.users = seed;
+      storage.set(KEY, this.users);
+    }
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.users.find((u) => u.email === email) ?? null;
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return this.users.find((u) => u.id === id) ?? null;
+  }
+
+  async listAll(): Promise<User[]> {
+    return [...this.users];
+  }
+}
