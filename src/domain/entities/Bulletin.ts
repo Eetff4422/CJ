@@ -18,3 +18,4 @@ export interface Bulletin {
   issuedAt?: string;
   verificationCode: string; // encoded in the QR code
 }
+export const BULLETIN_VALIDITY_MONTHS = 6;
