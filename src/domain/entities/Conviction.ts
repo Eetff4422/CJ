@@ -2,6 +2,7 @@ export enum ConvictionStatus {
   PENDING_VALIDATION = 'PENDING_VALIDATION',
   VALIDATED = 'VALIDATED',
   REJECTED = 'REJECTED',
+  UNDER_REVIEW = 'UNDER_REVIEW',
 }
 
 export interface Conviction {

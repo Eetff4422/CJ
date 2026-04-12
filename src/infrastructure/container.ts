@@ -1,3 +1,4 @@
+
 import { BulletinPdfGenerator } from '@infrastructure/pdf/BulletinPdfGenerator';
 import { InMemoryAuditRepository } from '@infrastructure/repositories/InMemoryAuditRepository';
 import { InMemoryAuthRepository } from '@infrastructure/repositories/InMemoryAuthRepository';
@@ -24,6 +25,13 @@ import { ListPendingConvictionsUseCase } from '@application/use-cases/conviction
 import { SubmitConvictionUseCase } from '@application/use-cases/conviction/SubmitConvictionUseCase';
 import { ValidateConvictionUseCase } from '@application/use-cases/conviction/ValidateConvictionUseCase';
 import { GetGlobalDashboardUseCase } from '@application/use-cases/dashboard/GetGlobalDashboardUseCase';
+import { CloseReviewTicketUseCase } from '@application/use-cases/review/CloseReviewTicketUseCase';
+import { CorrectConvictionFromTicketUseCase } from '@application/use-cases/review/CorrectConvictionFromTicketUseCase';
+import { ListReviewTicketsUseCase } from '@application/use-cases/review/ListReviewTicketsUseCase';
+import { MaintainConvictionFromTicketUseCase } from '@application/use-cases/review/MaintainConvictionFromTicketUseCase';
+import { OpenReviewTicketUseCase } from '@application/use-cases/review/OpenReviewTicketUseCase';
+import { RouteReviewTicketUseCase } from '@application/use-cases/review/RouteReviewTicketUseCase';
+import { InMemoryReviewTicketRepository } from './repositories/InMemoryReviewTicketRepository';
 
 // ── Injecter les liens citizenId dans les utilisateurs seed ─────────────────
 const seededUsers = SEED_USERS.map(u => ({
@@ -38,6 +46,7 @@ const citizenRepository    = new InMemoryCitizenRepository(SEED_CITIZENS);
 const bulletinRepository   = new InMemoryBulletinRepository(SEED_BULLETINS);
 const convictionRepository = new InMemoryConvictionRepository(SEED_CONVICTIONS);
 const pdfGenerator         = new BulletinPdfGenerator();
+const reviewTicketRepository = new InMemoryReviewTicketRepository();
 
 // ── Container (point d'entrée unique de toute la logique) ────────────────────
 export const container = {
@@ -47,6 +56,7 @@ export const container = {
   citizenRepository,
   bulletinRepository,
   convictionRepository,
+  reviewTicketRepository,
 
   // Auth
   loginUseCase:  new LoginUseCase(authRepository, auditRepository),
@@ -89,7 +99,25 @@ export const container = {
   getGlobalDashboardUseCase: new GetGlobalDashboardUseCase(
     bulletinRepository, convictionRepository, citizenRepository
   ),
-
+  // Circuit de relecture
+  openReviewTicketUseCase: new OpenReviewTicketUseCase(
+    reviewTicketRepository, convictionRepository, bulletinRepository, auditRepository
+  ),
+  routeReviewTicketUseCase: new RouteReviewTicketUseCase(
+    reviewTicketRepository, convictionRepository, auditRepository
+  ),
+  correctConvictionFromTicketUseCase: new CorrectConvictionFromTicketUseCase(
+    reviewTicketRepository, convictionRepository, auditRepository
+  ),
+  maintainConvictionFromTicketUseCase: new MaintainConvictionFromTicketUseCase(
+    reviewTicketRepository, convictionRepository, auditRepository
+  ),
+  closeReviewTicketUseCase: new CloseReviewTicketUseCase(
+    reviewTicketRepository, bulletinRepository, auditRepository
+  ),
+  listReviewTicketsUseCase: new ListReviewTicketsUseCase(
+    reviewTicketRepository, convictionRepository
+  ),
   // Admin
   createAgentUseCase: new CreateAgentUseCase(authRepository, auditRepository),
 };
