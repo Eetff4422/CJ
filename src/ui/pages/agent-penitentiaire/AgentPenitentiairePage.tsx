@@ -19,7 +19,17 @@ export function AgentPenitentiairePage() {
   const [search, setSearch] = useState('');
   const [tickets, setTickets] = useState<TicketRow[]>([]);
   const [loading, setLoading] = useState(true);
-
+  // État modale ticket
+type ReviewMode = 'CORRECT' | 'MAINTAIN';
+const [activeTicket, setActiveTicket] = useState<TicketRow | null>(null);
+const [reviewMode, setReviewMode] = useState<ReviewMode>('CORRECT');
+const [editCourt, setEditCourt] = useState('');
+const [editDate, setEditDate] = useState('');
+const [editOffense, setEditOffense] = useState('');
+const [editSentence, setEditSentence] = useState('');
+const [maintainComment, setMaintainComment] = useState('');
+const [processingTicket, setProcessingTicket] = useState(false);
+const [ticketNotice, setTicketNotice] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
   const load = async () => {
     setLoading(true);
     // 1. BDD citoyens
@@ -45,7 +55,69 @@ export function AgentPenitentiairePage() {
   };
 
   useEffect(() => { load(); }, [user]);
+  const openTicketModal = (row: TicketRow) => {
+  setActiveTicket(row);
+  setReviewMode('CORRECT');
+  setEditCourt(row.conviction?.court ?? '');
+  setEditDate(row.conviction?.decisionDate ?? '');
+  setEditOffense(row.conviction?.offense ?? '');
+  setEditSentence(row.conviction?.sentence ?? '');
+  setMaintainComment('');
+  setTicketNotice(null);
+};
 
+const closeTicketModal = () => {
+  setActiveTicket(null);
+};
+
+const handleCorrect = async () => {
+  if (!user || !activeTicket) return;
+  if (!editCourt.trim() || !editDate || !editOffense.trim() || !editSentence.trim()) {
+    setTicketNotice({ type: 'err', msg: 'Tous les champs sont obligatoires.' });
+    return;
+  }
+  setProcessingTicket(true);
+  try {
+    await container.correctConvictionFromTicketUseCase.execute({
+      ticketId: activeTicket.ticket.id,
+      correctedBy: user.id,
+      correctedByEmail: user.email,
+      correctedByRole: user.role,
+      patch: {
+        court: editCourt.trim(),
+        decisionDate: editDate,
+        offense: editOffense.trim(),
+        sentence: editSentence.trim(),
+      },
+    });
+    closeTicketModal();
+    await load();
+  } catch (e: any) {
+    setTicketNotice({ type: 'err', msg: e.message ?? 'Erreur lors de la correction.' });
+  } finally {
+    setProcessingTicket(false);
+  }
+};
+
+const handleMaintain = async () => {
+  if (!user || !activeTicket || !maintainComment.trim()) return;
+  setProcessingTicket(true);
+  try {
+    await container.maintainConvictionFromTicketUseCase.execute({
+      ticketId: activeTicket.ticket.id,
+      maintainedBy: user.id,
+      maintainedByEmail: user.email,
+      maintainedByRole: user.role,
+      maintainedComment: maintainComment.trim(),
+    });
+    closeTicketModal();
+    await load();
+  } catch (e: any) {
+    setTicketNotice({ type: 'err', msg: e.message ?? 'Erreur lors du maintien.' });
+  } finally {
+    setProcessingTicket(false);
+  }
+};
   if (!user) return null;
 
   // Filtrage live de la BDD citoyens
@@ -141,18 +213,162 @@ export function AgentPenitentiairePage() {
                     </div>
                   </div>
                   <button
-                    disabled
-                    title="Disponible en sous-livraison 4.3"
-                    className="bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg whitespace-nowrap"
-                  >
-                    Traiter
-                  </button>
+  onClick={() => openTicketModal({ ticket, conviction })}
+  disabled={!conviction}
+  className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg whitespace-nowrap"
+>
+  Traiter
+</button>
                 </div>
               </div>
             ))}
           </div>
         </section>
       )}
+      {/* ── MODALE TRAITEMENT TICKET ─────────────────────────────────── */}
+{activeTicket && activeTicket.conviction && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+            Demande de relecture
+          </div>
+          <div className="font-bold text-slate-800">Traitement d'une condamnation</div>
+        </div>
+        <button onClick={closeTicketModal} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+      </div>
+
+      <div className="px-6 py-5 space-y-5">
+        {ticketNotice && (
+          <div className={`rounded-lg px-4 py-3 text-sm font-medium ${
+            ticketNotice.type === 'ok' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'
+          }`}>{ticketNotice.msg}</div>
+        )}
+
+        {/* Motif */}
+        <section className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+          <div className="text-xs font-bold uppercase tracking-wider text-amber-700 mb-1">Motif transmis</div>
+          <div className="text-sm text-amber-900 italic">« {activeTicket.ticket.openComment} »</div>
+        </section>
+
+        {/* Saisie actuelle */}
+        <section>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">Saisie actuelle</h3>
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm space-y-1">
+            <div><span className="text-slate-500">Juridiction :</span> <span className="font-medium">{activeTicket.conviction.court}</span></div>
+            <div><span className="text-slate-500">Date :</span> {activeTicket.conviction.decisionDate}</div>
+            <div><span className="text-slate-500">Infraction :</span> {activeTicket.conviction.offense}</div>
+            <div><span className="text-slate-500">Peine :</span> {activeTicket.conviction.sentence}</div>
+          </div>
+        </section>
+
+        {/* Sélecteur de mode */}
+        <section>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">Décision</h3>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setReviewMode('CORRECT')}
+              className={`flex-1 px-4 py-3 rounded-lg border-2 text-sm font-semibold transition-colors ${
+                reviewMode === 'CORRECT'
+                  ? 'bg-blue-50 border-blue-500 text-blue-800'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              ✏ Corriger la saisie
+            </button>
+            <button
+              onClick={() => setReviewMode('MAINTAIN')}
+              className={`flex-1 px-4 py-3 rounded-lg border-2 text-sm font-semibold transition-colors ${
+                reviewMode === 'MAINTAIN'
+                  ? 'bg-emerald-50 border-emerald-500 text-emerald-800'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              ✓ Maintenir la saisie
+            </button>
+          </div>
+        </section>
+
+        {/* Mode CORRECT : formulaire éditable */}
+        {reviewMode === 'CORRECT' && (
+          <section className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Juridiction *</label>
+                <input type="text" value={editCourt} onChange={e => setEditCourt(e.target.value)}
+                  className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gabon-accent" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Date *</label>
+                <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                  className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gabon-accent" />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Infraction *</label>
+                <input type="text" value={editOffense} onChange={e => setEditOffense(e.target.value)}
+                  className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gabon-accent" />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Peine *</label>
+                <input type="text" value={editSentence} onChange={e => setEditSentence(e.target.value)}
+                  className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gabon-accent" />
+              </div>
+            </div>
+            <div className="text-xs text-slate-500 italic">
+              La saisie corrigée repassera en validation par le superviseur des condamnations.
+            </div>
+          </section>
+        )}
+
+        {/* Mode MAINTAIN : justification */}
+        {reviewMode === 'MAINTAIN' && (
+          <section>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Justification du maintien <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={maintainComment}
+              onChange={e => setMaintainComment(e.target.value)}
+              rows={4}
+              placeholder="Expliquez pourquoi la saisie est correcte en l'état…"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gabon-accent"
+            />
+            <div className="text-xs text-slate-500 italic mt-1">
+              La saisie sera maintenue telle quelle et la justification sera transmise à l'agent du casier.
+            </div>
+          </section>
+        )}
+      </div>
+
+      <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3">
+        <button
+          onClick={closeTicketModal}
+          className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-100"
+        >
+          Annuler
+        </button>
+        {reviewMode === 'CORRECT' ? (
+          <button
+            onClick={handleCorrect}
+            disabled={processingTicket}
+            className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold"
+          >
+            {processingTicket ? 'Soumission…' : 'Soumettre la correction'}
+          </button>
+        ) : (
+          <button
+            onClick={handleMaintain}
+            disabled={processingTicket || !maintainComment.trim()}
+            className="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold"
+          >
+            {processingTicket ? 'Soumission…' : 'Soumettre le maintien'}
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)}
     </Layout>
   );
 }

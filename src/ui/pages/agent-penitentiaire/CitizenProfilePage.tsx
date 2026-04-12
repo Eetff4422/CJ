@@ -72,32 +72,36 @@ export function CitizenProfilePage() {
   };
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!user || !citizen) return;
-    if (!court.trim() || !decisionDate || !offense.trim() || !sentence.trim()) {
-      setNotice({ type: 'err', msg: 'Tous les champs sont obligatoires.' });
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await container.submitConvictionUseCase.execute({
-        agent: user,
-        citizenId: citizen.id,
-        court: court.trim(),
-        decisionDate,
-        offense: offense.trim(),
-        sentence: sentence.trim(),
-      });
+  e.preventDefault();
+  if (!user || !citizen) return;
+  if (!court.trim() || !decisionDate || !offense.trim() || !sentence.trim()) {
+    setNotice({ type: 'err', msg: 'Tous les champs sont obligatoires.' });
+    return;
+  }
+  setSubmitting(true);
+  try {
+    const result = await container.submitConvictionUseCase.execute({
+      agent: user,
+      nationalIdOrCitizenId: citizen.id,
+      court: court.trim(),
+      decisionDate,
+      offense: offense.trim(),
+      sentence: sentence.trim(),
+    });
+    if (!result.success) {
+      setNotice({ type: 'err', msg: result.error ?? 'Erreur lors de la soumission.' });
+    } else {
       setNotice({ type: 'ok', msg: '✔ Condamnation soumise — en attente de validation.' });
       resetForm();
       setShowForm(false);
       await load();
-    } catch (err: any) {
-      setNotice({ type: 'err', msg: err.message ?? 'Erreur lors de la soumission.' });
-    } finally {
-      setSubmitting(false);
     }
-  };
+  } catch (err: any) {
+    setNotice({ type: 'err', msg: err.message ?? 'Erreur inattendue.' });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   if (loading) return <Layout><div className="text-slate-400 text-sm">Chargement…</div></Layout>;
 
