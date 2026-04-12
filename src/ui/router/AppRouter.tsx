@@ -1,19 +1,20 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from '@ui/contexts/AuthContext';
+import { RoleId, ROLES } from '@domain/entities/Role';
 import { ProtectedRoute } from '@ui/components/ProtectedRoute';
+import { AuthProvider, useAuth } from '@ui/contexts/AuthContext';
 import { LoginPage } from '@ui/pages/LoginPage';
-import { RegisterCitizenPage } from '@ui/pages/citizen/RegisterCitizenPage';
+import { AdminPage } from '@ui/pages/admin/AdminPage';
+import { AgentCasierPage } from '@ui/pages/agent-casier/AgentCasierPage';
+import { AgentPenitentiairePage } from '@ui/pages/agent-penitentiaire/AgentPenitentiairePage';
+import { CitizenProfilePage } from '@ui/pages/agent-penitentiaire/CitizenProfilePage';
 import { CitizenDashboardPage } from '@ui/pages/citizen/CitizenDashboardPage';
 import { NewBulletinRequestPage } from '@ui/pages/citizen/NewBulletinRequestPage';
 import { PaymentPage } from '@ui/pages/citizen/PaymentPage';
-import { AgentCasierPage } from '@ui/pages/agent-casier/AgentCasierPage';
-import { SuperviseurCasierPage } from '@ui/pages/superviseur-casier/SuperviseurCasierPage';
-import { AgentPenitentiairePage } from '@ui/pages/agent-penitentiaire/AgentPenitentiairePage';
-import { SuperviseurCondamnationsPage } from '@ui/pages/superviseur-condamnations/SuperviseurCondamnationsPage';
+import { RegisterCitizenPage } from '@ui/pages/citizen/RegisterCitizenPage';
 import { DgDashboardPage } from '@ui/pages/dg/DgDashboardPage';
-import { AdminPage } from '@ui/pages/admin/AdminPage';
 import { PublicVerifyPage } from '@ui/pages/public/PublicVerifyPage';
-import { RoleId, ROLES } from '@domain/entities/Role';
+import { SuperviseurCasierPage } from '@ui/pages/superviseur-casier/SuperviseurCasierPage';
+import { SuperviseurCondamnationsPage } from '@ui/pages/superviseur-condamnations/SuperviseurCondamnationsPage';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 function HomeRedirect() {
   const { user, loading } = useAuth();
@@ -96,15 +97,25 @@ export function AppRouter() {
           />
 
           {/* Agent pénitentiaire */}
-          <Route
-            path="/agent-penitentiaire"
-            element={
-              <ProtectedRoute allowedRoles={[RoleId.AGENT_PENITENTIAIRE]}>
-                <AgentPenitentiairePage />
-              </ProtectedRoute>
-            }
-          />
+          {/* Agent pénitentiaire */}
+<Route
+  path="/agent-penitentiaire"
+  element={
+    <ProtectedRoute allowedRoles={[RoleId.AGENT_PENITENTIAIRE]}>
+      <AgentPenitentiairePage />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/agent-penitentiaire/citoyen/:citizenId"
+  element={
+    <ProtectedRoute allowedRoles={[RoleId.AGENT_PENITENTIAIRE]}>
+      <CitizenProfilePage />
+    </ProtectedRoute>
+  }
+/>
 
+{/* Superviseur condamnations */}
           {/* Superviseur condamnations */}
           <Route
             path="/superviseur-condamnations"
