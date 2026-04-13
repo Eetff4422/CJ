@@ -1,26 +1,43 @@
-import { useEffect, useState } from 'react';
-import { Layout } from '@ui/components/Layout';
-import { container } from '@infrastructure/container';
 import { DashboardStats } from '@application/use-cases/dashboard/GetGlobalDashboardUseCase';
 import { AuditLogEntry } from '@domain/entities/AuditLog';
+import { Bulletin, BulletinStatus } from '@domain/entities/Bulletin';
+import { Citizen } from '@domain/entities/Citizen';
+import { Conviction, ConvictionStatus } from '@domain/entities/Conviction';
+import { ROLES } from '@domain/entities/Role';
+import { User } from '@domain/entities/User';
+import { container } from '@infrastructure/container';
+import { Layout } from '@ui/components/Layout';
 import { formatDateTime } from '@ui/lib/format';
-import { BulletinStatus } from '@domain/entities/Bulletin';
-import { ConvictionStatus } from '@domain/entities/Conviction';
-
+import { useEffect, useState } from 'react';
 export function DgDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-
+  // Vue BDD type SGBD
+type DbTable = 'citizens' | 'convictions' | 'bulletins' | 'users';
+const [activeTable, setActiveTable] = useState<DbTable>('citizens');
+const [dbSearch, setDbSearch] = useState('');
+const [citizens, setCitizens] = useState<Citizen[]>([]);
+const [convictions, setConvictions] = useState<Conviction[]>([]);
+const [bulletins, setBulletins] = useState<Bulletin[]>([]);
+const [users, setUsers] = useState<User[]>([]);
   useEffect(() => {
     const load = async () => {
-      const [s, log] = await Promise.all([
-        container.getGlobalDashboardUseCase.execute(),
-        container.auditRepository.listAll(),
-      ]);
+      const [s, log, cits, convs, bulls, usrs] = await Promise.all([
+  container.getGlobalDashboardUseCase.execute(),
+  container.auditRepository.listAll(),
+  container.citizenRepository.listAll(),
+  container.convictionRepository.listAll(),
+  container.bulletinRepository.listAll(),
+  container.authRepository.listAll(),
+]);
       setStats(s);
       setAuditLog(log);
       setLoading(false);
+      setCitizens(cits);
+setConvictions(convs);
+setBulletins(bulls);
+setUsers(usrs);
     };
     load();
   }, []);
@@ -32,7 +49,25 @@ export function DgDashboardPage() {
       </Layout>
     );
   }
+  // Filtrage live sur la table active
+const q = dbSearch.trim().toLowerCase();
+const filterRow = (row: Record<string, any>): boolean => {
+  if (!q) return true;
+  return Object.values(row).some(v =>
+    v !== null && v !== undefined && String(v).toLowerCase().includes(q)
+  );
+};
+const filteredCitizens   = citizens.filter(filterRow);
+const filteredConvictions = convictions.filter(filterRow);
+const filteredBulletins  = bulletins.filter(filterRow);
+const filteredUsers      = users.filter(filterRow);
 
+const tableMeta: Record<DbTable, { label: string; count: number }> = {
+  citizens:    { label: 'Citoyens',      count: filteredCitizens.length },
+  convictions: { label: 'Condamnations', count: filteredConvictions.length },
+  bulletins:   { label: 'Bulletins',     count: filteredBulletins.length },
+  users:       { label: 'Utilisateurs',  count: filteredUsers.length },
+};
   return (
     <Layout>
       <div className="mb-6">
@@ -194,6 +229,180 @@ export function DgDashboardPage() {
           </div>
         )}
       </div>
+      {/* ── RÉFÉRENTIEL NATIONAL — VUE BASE DE DONNÉES ──────────────────── */}
+<section className="mt-8">
+  <div className="mb-4">
+    <div className="text-xs font-semibold uppercase tracking-wider text-gabon-accent mb-1">
+      Référentiel national
+    </div>
+    <h2 className="text-2xl font-bold text-slate-800">Base de données centralisée</h2>
+    <p className="text-slate-500 text-sm mt-1">
+      Vue en lecture seule des 4 tables principales du référentiel. Les clés étrangères
+      matérialisent les relations entre tables.
+    </p>
+  </div>
+
+  {/* Onglets */}
+  <div className="flex gap-1 border-b border-slate-200 mb-3">
+    {(Object.keys(tableMeta) as DbTable[]).map(t => (
+      <button
+        key={t}
+        onClick={() => { setActiveTable(t); setDbSearch(''); }}
+        className={`px-4 py-2 text-sm font-semibold transition-colors ${
+          activeTable === t
+            ? 'text-gabon-primary border-b-2 border-gabon-primary -mb-px'
+            : 'text-slate-500 hover:text-slate-700'
+        }`}
+      >
+        <span className="font-mono text-xs mr-1 opacity-60">{t}</span>
+        {tableMeta[t].label}
+      </button>
+    ))}
+  </div>
+
+  {/* Barre recherche + compteur */}
+  <div className="flex items-center gap-3 mb-3">
+    <input
+      type="text"
+      value={dbSearch}
+      onChange={e => setDbSearch(e.target.value)}
+      placeholder={`Rechercher dans ${activeTable}…`}
+      className="flex-1 border border-slate-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gabon-accent"
+    />
+    <div className="text-xs text-slate-500 whitespace-nowrap">
+      <span className="font-bold text-slate-700">{tableMeta[activeTable].count}</span> ligne{tableMeta[activeTable].count > 1 ? 's' : ''}
+    </div>
+  </div>
+
+  {/* Tableau */}
+  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+    <div className="max-h-[500px] overflow-auto">
+      <table className="w-full text-xs font-mono">
+        {activeTable === 'citizens' && (
+          <>
+            <thead className="bg-slate-100 sticky top-0">
+              <tr className="text-left text-slate-600">
+                <th className="px-3 py-2 font-bold">id</th>
+                <th className="px-3 py-2 font-bold">nationalId</th>
+                <th className="px-3 py-2 font-bold">lastName</th>
+                <th className="px-3 py-2 font-bold">firstName</th>
+                <th className="px-3 py-2 font-bold">birthDate</th>
+                <th className="px-3 py-2 font-bold">gender</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCitizens.map((c, i) => (
+                <tr key={c.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  <td className="px-3 py-2 text-slate-700">{c.id}</td>
+                  <td className="px-3 py-2 text-slate-800 font-semibold">{c.nationalId}</td>
+                  <td className="px-3 py-2">{c.lastName}</td>
+                  <td className="px-3 py-2">{c.firstName}</td>
+                  <td className="px-3 py-2 text-slate-600">{c.birthDate}</td>
+                  <td className="px-3 py-2 text-slate-600">{c.gender}</td>
+                </tr>
+              ))}
+            </tbody>
+          </>
+        )}
+
+        {activeTable === 'convictions' && (
+          <>
+            <thead className="bg-slate-100 sticky top-0">
+              <tr className="text-left text-slate-600">
+                <th className="px-3 py-2 font-bold">id</th>
+                <th className="px-3 py-2 font-bold">citizenId <span className="text-blue-600">FK</span></th>
+                <th className="px-3 py-2 font-bold">court</th>
+                <th className="px-3 py-2 font-bold">offense</th>
+                <th className="px-3 py-2 font-bold">decisionDate</th>
+                <th className="px-3 py-2 font-bold">status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredConvictions.map((c, i) => (
+                <tr key={c.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  <td className="px-3 py-2 text-slate-700">{c.id}</td>
+                  <td className="px-3 py-2 text-blue-700">{c.citizenId}</td>
+                  <td className="px-3 py-2">{c.court}</td>
+                  <td className="px-3 py-2">{c.offense}</td>
+                  <td className="px-3 py-2 text-slate-600">{c.decisionDate}</td>
+                  <td className="px-3 py-2">
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px]">{c.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </>
+        )}
+
+        {activeTable === 'bulletins' && (
+          <>
+            <thead className="bg-slate-100 sticky top-0">
+              <tr className="text-left text-slate-600">
+                <th className="px-3 py-2 font-bold">id</th>
+                <th className="px-3 py-2 font-bold">requestNumber</th>
+                <th className="px-3 py-2 font-bold">citizenId <span className="text-blue-600">FK</span></th>
+                <th className="px-3 py-2 font-bold">status</th>
+                <th className="px-3 py-2 font-bold">requestedAt</th>
+                <th className="px-3 py-2 font-bold">issuedAt</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredBulletins.map((b, i) => (
+                <tr key={b.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  <td className="px-3 py-2 text-slate-700">{b.id}</td>
+                  <td className="px-3 py-2 font-semibold">{b.requestNumber}</td>
+                  <td className="px-3 py-2 text-blue-700">{b.citizenId}</td>
+                  <td className="px-3 py-2">
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px]">{b.status}</span>
+                  </td>
+                  <td className="px-3 py-2 text-slate-600">{b.requestedAt?.slice(0, 10)}</td>
+                  <td className="px-3 py-2 text-slate-600">{b.issuedAt?.slice(0, 10) ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </>
+        )}
+
+        {activeTable === 'users' && (
+          <>
+            <thead className="bg-slate-100 sticky top-0">
+              <tr className="text-left text-slate-600">
+                <th className="px-3 py-2 font-bold">id</th>
+                <th className="px-3 py-2 font-bold">email</th>
+                <th className="px-3 py-2 font-bold">fullName</th>
+                <th className="px-3 py-2 font-bold">role</th>
+                <th className="px-3 py-2 font-bold">citizenId <span className="text-blue-600">FK</span></th>
+                <th className="px-3 py-2 font-bold">isActive</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map((u, i) => (
+                <tr key={u.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  <td className="px-3 py-2 text-slate-700">{u.id}</td>
+                  <td className="px-3 py-2">{u.email}</td>
+                  <td className="px-3 py-2">{u.fullName}</td>
+                  <td className="px-3 py-2">
+                    <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px]">{ROLES[u.role].label}</span>
+                  </td>
+                  <td className="px-3 py-2 text-blue-700">{u.citizenId ?? '—'}</td>
+                  <td className="px-3 py-2">
+                    {u.isActive
+                      ? <span className="text-green-600">true</span>
+                      : <span className="text-red-600">false</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </>
+        )}
+      </table>
+    </div>
+  </div>
+
+  <div className="text-xs text-slate-400 italic mt-2">
+    Vue en lecture seule — les champs sensibles (mot de passe, adresses, filiation) sont volontairement masqués.
+  </div>
+</section>
     </Layout>
   );
 }
