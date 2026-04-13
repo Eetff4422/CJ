@@ -12,6 +12,9 @@ import { SEED_CONVICTIONS } from '@infrastructure/seed/seedCondamnations';
 import { SEED_USERS } from '@infrastructure/seed/seedUsers';
 
 import { CreateAgentUseCase } from '@application/use-cases/admin/CreateAgentUseCase';
+import { CreateCitizenByAdminUseCase } from '@application/use-cases/admin/CreateCitizenByAdminUseCase';
+import { ToggleUserActiveUseCase } from '@application/use-cases/admin/ToggleUserActiveUseCase';
+import { UpdateUserUseCase } from '@application/use-cases/admin/UpdateUserUseCase';
 import { LoginUseCase } from '@application/use-cases/auth/LoginUseCase';
 import { LogoutUseCase } from '@application/use-cases/auth/LogoutUseCase';
 import { ListCitizenBulletinsUseCase } from '@application/use-cases/bulletin/ListCitizenBulletinsUseCase';
@@ -32,7 +35,6 @@ import { MaintainConvictionFromTicketUseCase } from '@application/use-cases/revi
 import { OpenReviewTicketUseCase } from '@application/use-cases/review/OpenReviewTicketUseCase';
 import { RouteReviewTicketUseCase } from '@application/use-cases/review/RouteReviewTicketUseCase';
 import { InMemoryReviewTicketRepository } from './repositories/InMemoryReviewTicketRepository';
-
 // ── Injecter les liens citizenId dans les utilisateurs seed ─────────────────
 const seededUsers = SEED_USERS.map(u => ({
   ...u,
@@ -120,4 +122,9 @@ export const container = {
   ),
   // Admin
   createAgentUseCase: new CreateAgentUseCase(authRepository, auditRepository),
+  updateUserUseCase: new UpdateUserUseCase(authRepository, auditRepository),
+  toggleUserActiveUseCase: new ToggleUserActiveUseCase(authRepository, auditRepository),
+  createCitizenByAdminUseCase: new CreateCitizenByAdminUseCase(
+    citizenRepository, auditRepository
+  ),
 };

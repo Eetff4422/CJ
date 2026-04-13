@@ -38,7 +38,13 @@ export class InMemoryAuthRepository implements AuthRepository {
   async findById(id: string): Promise<User | null> {
     return this.users.find((u) => u.id === id) ?? null;
   }
-
+  async update(id: string, patch: Partial<User>): Promise<User> {
+  const idx = this.users.findIndex(u => u.id === id);
+  if (idx === -1) throw new Error(`User not found: ${id}`);
+  this.users[idx] = { ...this.users[idx], ...patch };
+  storage.set(KEY, this.users);
+  return this.users[idx];
+}
   async listAll(): Promise<User[]> {
     return [...this.users];
   }
