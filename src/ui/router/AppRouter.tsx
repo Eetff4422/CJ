@@ -2,6 +2,7 @@ import { RoleId, ROLES } from '@domain/entities/Role';
 import { ProtectedRoute } from '@ui/components/ProtectedRoute';
 import { AuthProvider, useAuth } from '@ui/contexts/AuthContext';
 import { LoginPage } from '@ui/pages/LoginPage';
+import { AdminAccountProfilePage } from '@ui/pages/admin/AdminAccountProfilePage';
 import { AdminPage } from '@ui/pages/admin/AdminPage';
 import { AgentCasierPage } from '@ui/pages/agent-casier/AgentCasierPage';
 import { AgentPenitentiairePage } from '@ui/pages/agent-penitentiaire/AgentPenitentiairePage';
@@ -15,7 +16,6 @@ import { PublicVerifyPage } from '@ui/pages/public/PublicVerifyPage';
 import { SuperviseurCasierPage } from '@ui/pages/superviseur-casier/SuperviseurCasierPage';
 import { SuperviseurCondamnationsPage } from '@ui/pages/superviseur-condamnations/SuperviseurCondamnationsPage';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-
 function HomeRedirect() {
   const { user, loading } = useAuth();
   if (loading)
@@ -135,7 +135,14 @@ export function AppRouter() {
               </ProtectedRoute>
             }
           />
-
+          <Route
+  path="/admin/compte/:userId"
+  element={
+    <ProtectedRoute allowedRoles={[RoleId.ADMIN_TECHNIQUE]}>
+      <AdminAccountProfilePage />
+    </ProtectedRoute>
+  }
+/>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
