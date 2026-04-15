@@ -49,13 +49,21 @@ export class UpdateUserUseCase {
     }
 
     if (input.role !== undefined && input.role !== target.role) {
-      // L'admin ne peut pas transformer un compte en citoyen ou inversement
-      if (input.role === RoleId.CITIZEN || target.role === RoleId.CITIZEN) {
-        return { success: false, error: 'Les comptes citoyens ne peuvent pas changer de rôle.' };
-      }
-      patch.role = input.role;
-      changes.push(`rôle: "${target.role}" → "${input.role}"`);
-    }
+  // Un admin ne peut pas modifier son propre rôle
+  if (input.admin.id === input.targetUserId) {
+    return { success: false, error: 'Vous ne pouvez pas modifier votre propre rôle.' };
+  }
+  // Les comptes citoyens ne changent pas de rôle
+  if (input.role === RoleId.CITIZEN || target.role === RoleId.CITIZEN) {
+    return { success: false, error: 'Les comptes citoyens ne peuvent pas changer de rôle.' };
+  }
+  // Interdiction de promouvoir quelqu'un en admin technique
+  if (input.role === RoleId.ADMIN_TECHNIQUE) {
+    return { success: false, error: 'La promotion vers Administrateur technique n\'est pas autorisée depuis cette interface.' };
+  }
+  patch.role = input.role;
+  changes.push(`rôle: "${target.role}" → "${input.role}"`);
+}
 
     if (Object.keys(patch).length === 0) {
       return { success: true, user: target };

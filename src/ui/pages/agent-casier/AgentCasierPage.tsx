@@ -32,6 +32,10 @@ export function AgentCasierPage() {
 
   // Sous-modale : demander relecture
   const [reviewFor, setReviewFor] = useState<Conviction | null>(null);
+  // Modale relecture identité (distincte de la modale relecture condamnation)
+const [identityReviewOpen, setIdentityReviewOpen] = useState(false);
+const [identityComment, setIdentityComment] = useState('');
+const [submittingIdentityReview, setSubmittingIdentityReview] = useState(false);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
@@ -112,7 +116,29 @@ export function AgentCasierPage() {
       setSubmittingReview(false);
     }
   };
-
+  const handleSubmitIdentityReview = async () => {
+  if (!user || !modal || !identityComment.trim()) return;
+  setSubmittingIdentityReview(true);
+  try {
+    await container.openIdentityReviewTicketUseCase.execute({
+      bulletinId: modal.bulletin.id,
+      citizenId: modal.citizen.id,
+      openedBy: user.id,
+      openedByEmail: user.email,
+      openedByRole: user.role,
+      openComment: identityComment.trim(),
+    });
+    setIdentityReviewOpen(false);
+    setIdentityComment('');
+    setModal(null);
+    setNotice({ type: 'ok', msg: '✔ Demande de relecture d\'identité transmise.' });
+    await load();
+  } catch (e: any) {
+    setNotice({ type: 'err', msg: e.message ?? 'Erreur lors de la demande.' });
+  } finally {
+    setSubmittingIdentityReview(false);
+  }
+};
   const handleCloseTicket = async () => {
     if (!user || !modal?.activeTicket) return;
     try {
@@ -242,6 +268,14 @@ export function AgentCasierPage() {
               <section>
                 <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">Identité civile</h3>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  {!hasActiveTicket && (
+  <button
+    onClick={() => { setIdentityReviewOpen(true); setIdentityComment(''); }}
+    className="mt-3 text-xs font-semibold text-slate-700 underline hover:text-slate-900"
+  >
+    Demander une relecture de l'identité
+  </button>
+)}
                   <div><span className="text-slate-500">Nom complet :</span> <span className="font-semibold">{modal.citizen.firstName} {modal.citizen.lastName}</span></div>
                   <div><span className="text-slate-500">N° national :</span> <span className="font-mono font-semibold">{modal.citizen.nationalId}</span></div>
                   <div><span className="text-slate-500">Date de naissance :</span> {modal.citizen.birthDate}</div>
@@ -336,7 +370,46 @@ export function AgentCasierPage() {
           </div>
         </div>
       )}
-
+      {/* ── SOUS-MODALE : RELECTURE IDENTITÉ ─────────────────────── */}
+{identityReviewOpen && modal && (
+  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+      <h3 className="text-lg font-bold text-slate-800 mb-1">Demander une relecture de l'identité</h3>
+      <p className="text-xs text-slate-500 mb-4">
+        L'identité civile sera transmise pour vérification approfondie. La demande du citoyen sera mise en attente.
+      </p>
+      <div className="bg-slate-50 rounded-lg p-3 text-sm mb-4">
+        <div className="font-semibold">{modal.citizen.firstName} {modal.citizen.lastName}</div>
+        <div className="text-slate-600 font-mono text-xs">{modal.citizen.nationalId}</div>
+      </div>
+      <label className="block text-xs font-semibold text-slate-600 mb-1">
+        Motif de la contestation <span className="text-red-500">*</span>
+      </label>
+      <textarea
+        value={identityComment}
+        onChange={e => setIdentityComment(e.target.value)}
+        rows={4}
+        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gabon-accent"
+        placeholder="Précisez ce qui pose problème dans l'identité civile…"
+      />
+      <div className="flex justify-end gap-2 mt-4">
+        <button
+          onClick={() => { setIdentityReviewOpen(false); setIdentityComment(''); }}
+          className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-100"
+        >
+          Annuler
+        </button>
+        <button
+          onClick={handleSubmitIdentityReview}
+          disabled={!identityComment.trim() || submittingIdentityReview}
+          className="px-5 py-2 rounded-lg bg-slate-700 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold"
+        >
+          {submittingIdentityReview ? 'Transmission…' : 'Soumettre la relecture'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       {/* ── SOUS-MODALE : DEMANDE DE RELECTURE ───────────────────────── */}
       {reviewFor && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">

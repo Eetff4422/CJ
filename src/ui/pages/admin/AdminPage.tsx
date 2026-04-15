@@ -13,7 +13,6 @@ const AGENT_ROLES: RoleId[] = [
   RoleId.AGENT_PENITENTIAIRE,
   RoleId.SUPERVISEUR_CONDAMNATIONS,
   RoleId.DIRECTEUR_GENERAL,
-  RoleId.ADMIN_TECHNIQUE,
 ];
 
 type CreateMode = null | 'AGENT';

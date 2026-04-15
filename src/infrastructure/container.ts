@@ -30,10 +30,14 @@ import { ValidateConvictionUseCase } from '@application/use-cases/conviction/Val
 import { GetGlobalDashboardUseCase } from '@application/use-cases/dashboard/GetGlobalDashboardUseCase';
 import { CloseReviewTicketUseCase } from '@application/use-cases/review/CloseReviewTicketUseCase';
 import { CorrectConvictionFromTicketUseCase } from '@application/use-cases/review/CorrectConvictionFromTicketUseCase';
+import { CorrectIdentityFromTicketUseCase } from '@application/use-cases/review/CorrectIdentityFromTicketUseCase';
 import { ListReviewTicketsUseCase } from '@application/use-cases/review/ListReviewTicketsUseCase';
 import { MaintainConvictionFromTicketUseCase } from '@application/use-cases/review/MaintainConvictionFromTicketUseCase';
+import { MaintainIdentityFromTicketUseCase } from '@application/use-cases/review/MaintainIdentityFromTicketUseCase';
+import { OpenIdentityReviewTicketUseCase } from '@application/use-cases/review/OpenIdentityReviewTicketUseCase';
 import { OpenReviewTicketUseCase } from '@application/use-cases/review/OpenReviewTicketUseCase';
 import { RouteReviewTicketUseCase } from '@application/use-cases/review/RouteReviewTicketUseCase';
+import { ValidateIdentityCorrectionUseCase } from '@application/use-cases/review/ValidateIdentityCorrectionUseCase';
 import { InMemoryReviewTicketRepository } from './repositories/InMemoryReviewTicketRepository';
 // ── Injecter les liens citizenId dans les utilisateurs seed ─────────────────
 const seededUsers = SEED_USERS.map(u => ({
@@ -119,6 +123,18 @@ export const container = {
   ),
   listReviewTicketsUseCase: new ListReviewTicketsUseCase(
     reviewTicketRepository, convictionRepository
+  ),
+  openIdentityReviewTicketUseCase: new OpenIdentityReviewTicketUseCase(
+    reviewTicketRepository, citizenRepository, bulletinRepository, auditRepository
+  ),
+  correctIdentityFromTicketUseCase: new CorrectIdentityFromTicketUseCase(
+    reviewTicketRepository, auditRepository
+  ),
+  maintainIdentityFromTicketUseCase: new MaintainIdentityFromTicketUseCase(
+    reviewTicketRepository, auditRepository
+  ),
+  validateIdentityCorrectionUseCase: new ValidateIdentityCorrectionUseCase(
+    reviewTicketRepository, citizenRepository, auditRepository
   ),
   // Admin
   createAgentUseCase: new CreateAgentUseCase(authRepository, auditRepository),

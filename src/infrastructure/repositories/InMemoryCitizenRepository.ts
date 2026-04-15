@@ -18,7 +18,13 @@ export class InMemoryCitizenRepository implements CitizenRepository {
   async findByNationalId(nationalId: string): Promise<Citizen | null> {
     return this.citizens.find((c) => c.nationalId === nationalId) ?? null;
   }
-
+  async update(id: string, patch: Partial<Citizen>): Promise<Citizen> {
+  const idx = this.citizens.findIndex(c => c.id === id);
+  if (idx === -1) throw new Error(`Citizen not found: ${id}`);
+  this.citizens[idx] = { ...this.citizens[idx], ...patch };
+  storage.set(KEY, this.citizens);
+  return this.citizens[idx];
+}
   async create(input: Omit<Citizen, 'id' | 'createdAt'>): Promise<Citizen> {
     const citizen: Citizen = {
       ...input,

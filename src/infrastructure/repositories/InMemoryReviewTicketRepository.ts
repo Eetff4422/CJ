@@ -8,8 +8,15 @@ export class InMemoryReviewTicketRepository implements ReviewTicketRepository {
   private tickets: ReviewTicket[];
 
   constructor(seed: ReviewTicket[] = []) {
-    this.tickets = storage.get<ReviewTicket[]>(KEY) ?? seed;
-  }
+  const stored = storage.get<any[]>(KEY) ?? seed;
+  // Migration rétrocompat : les anciens tickets n'ont ni `kind` ni `citizenId`
+  this.tickets = stored.map((t: any) => ({
+    ...t,
+    kind: t.kind ?? 'CONVICTION',
+    citizenId: t.citizenId ?? '', // sera reconstruit si besoin
+  }));
+  storage.set(KEY, this.tickets);
+}
 
   async findById(id: string) {
     return this.tickets.find(t => t.id === id) ?? null;

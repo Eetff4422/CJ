@@ -310,8 +310,7 @@ const tableMeta: Record<DbTable, { label: string; count: number }> = {
             <thead className="bg-slate-100 sticky top-0">
               <tr className="text-left text-slate-600">
                 <th className="px-3 py-2 font-bold">id</th>
-                <th className="px-3 py-2 font-bold">citizenId <span className="text-blue-600">FK</span></th>
-                <th className="px-3 py-2 font-bold">court</th>
+<th className="px-3 py-2 font-bold">citizenId <span className="text-blue-600">→ citoyens</span></th>                <th className="px-3 py-2 font-bold">court</th>
                 <th className="px-3 py-2 font-bold">offense</th>
                 <th className="px-3 py-2 font-bold">decisionDate</th>
                 <th className="px-3 py-2 font-bold">status</th>
@@ -340,8 +339,7 @@ const tableMeta: Record<DbTable, { label: string; count: number }> = {
               <tr className="text-left text-slate-600">
                 <th className="px-3 py-2 font-bold">id</th>
                 <th className="px-3 py-2 font-bold">requestNumber</th>
-                <th className="px-3 py-2 font-bold">citizenId <span className="text-blue-600">FK</span></th>
-                <th className="px-3 py-2 font-bold">status</th>
+<th className="px-3 py-2 font-bold">citizenId <span className="text-blue-600">→ citoyens</span></th>                <th className="px-3 py-2 font-bold">status</th>
                 <th className="px-3 py-2 font-bold">requestedAt</th>
                 <th className="px-3 py-2 font-bold">issuedAt</th>
               </tr>
@@ -371,8 +369,7 @@ const tableMeta: Record<DbTable, { label: string; count: number }> = {
                 <th className="px-3 py-2 font-bold">email</th>
                 <th className="px-3 py-2 font-bold">fullName</th>
                 <th className="px-3 py-2 font-bold">role</th>
-                <th className="px-3 py-2 font-bold">citizenId <span className="text-blue-600">FK</span></th>
-                <th className="px-3 py-2 font-bold">isActive</th>
+<th className="px-3 py-2 font-bold">citizenId <span className="text-blue-600">→ citoyens</span></th>                <th className="px-3 py-2 font-bold">isActive</th>
               </tr>
             </thead>
             <tbody>
